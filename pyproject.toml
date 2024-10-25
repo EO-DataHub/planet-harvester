@@ -1,5 +1,5 @@
 # Copyright 2024 Telespazio UK Ltd
-#    
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,9 +13,9 @@
 # limitations under the License.
 
 [project]
-name = "CHANGEME-component-name"
+name = "planet-harvester"
 version = "0.1.0"
-description = "CHANGEME a short description"
+description = "Harvest data from Planet"
 readme = "README.md"
 
 # Our target version is Python 3.11, but it may work with earlier versions.
@@ -27,11 +27,11 @@ license = {file = "LICENSE"}
 # authored the project, and a valid email address corresponding to the name
 # listed.
 authors = [
-  {name = "Telespazio UK Ltd", email = "CHANGEME-alex.hayward@telespazio.com" }
+  {name = "Telespazio UK Ltd", email = "hannah.collingwood@telespazio.com" }
 ]
 
 maintainers = [
-  {name = "Telespazio UK Ltd", email = "CHANGEME-alex.hayward@telespazio.com" }
+  {name = "Telespazio UK Ltd", email = "hannah.collingwood@telespazio.com" }
 ]
 
 # Classifiers help users find your project by categorizing it.
@@ -64,6 +64,11 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
+    "pulsar-client",
+    "boto3",
+    "kubernetes",
+    "eodhp-utils @ git+https://github.com/EO-DataHub/eodhp-utils@v0.1.1",
+    "python-slugify",
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -88,9 +93,9 @@ dev = ["pip-tools", "pytest", "pytest-xdist", "pytest-mock", "pytest-watcher", "
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
 [project.urls]  # Optional
-homepage = "https://github.com/UKEODHP/"
-repository = "CHANGEME-https://github.com/UKEODHP/..."
-changelog = "CHANGEME-https://github.com/UKEODHP/.../master/CHANGELOG.md"
+homepage = "https://github.com/EO-DataHub/"
+repository = "https://github.com/EO-DataHub/planet-harvester"
+changelog = "https://github.com/EO-DataHub/planet-harvester/blob/main/CHANGELOG.md"
 
 [build-system]
 # These are the assumed default build requirements from pip:
@@ -105,7 +110,7 @@ markers = [
 ]
 
 [tool.setuptools]
-packages = ["CHANGEME-pythonpkgname"]
+packages = []
 
 [tool.black]
 line-length = 100
@@ -143,8 +148,8 @@ exclude = [
 [tool.pylint.'MESSAGES CONTROL']
 disable = '''
     line-too-long,
-    missing-class-docstring, 
-    too-many-locals, 
+    missing-class-docstring,
+    too-many-locals,
     too-many-instance-attributes,
     logging-fstring-interpolation,
 '''

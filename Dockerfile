@@ -8,9 +8,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update -y && apt-get upgrade -y
 
-WORKDIR /CHANGME-component-name
-ADD LICENSE.txt requirements.txt ./
-ADD CHANGEME-module-name ./CHANGEME-module-name/
+WORKDIR /planet-harvester
+ADD LICENSE requirements.txt ./
+ADD Cplanet-harvester ./planet-harvester/
 ADD pyproject.toml ./
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt .
 
