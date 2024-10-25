@@ -66,9 +66,11 @@ classifiers = [
 dependencies = [
     "pulsar-client",
     "boto3",
-    "kubernetes",
+    "botocore",
+    "click",
     "eodhp-utils @ git+https://github.com/EO-DataHub/eodhp-utils@v0.1.1",
-    "python-slugify",
+    "pystac-client",
+    "pystac",
 ]
 
 # List additional groups of dependencies here (e.g. development
