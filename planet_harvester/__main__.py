@@ -9,7 +9,8 @@ import requests
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
 from pulsar import Client as PulsarClient
-from response_adaptor import planet_to_stac_response_collection
+
+from planet_harvester.response_adaptor import planet_to_stac_response_collection
 
 logging.basicConfig(
     level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO,
@@ -120,13 +121,30 @@ def get_collections() -> dict:
 
     api_key = os.environ.get("PLANET_API_KEY")
 
-    from requests.auth import HTTPBasicAuth
-
     planet_response = requests.get(
-        "https://api.planet.com/data/v1/item-types", auth=HTTPBasicAuth(api_key, "")
+        "https://api.planet.com/data/v1/item-types", auth=requests.auth.HTTPBasicAuth(api_key, "")
     )
 
-    return planet_to_stac_response_collection(planet_response=planet_response.json())
+    all_collections = planet_to_stac_response_collection(planet_response=planet_response.json())
+
+    collections = remove_unused_collections(all_collections)
+
+    return collections
+
+
+def remove_unused_collections(collections: dict) -> dict:
+    unused_collections = os.environ.get("UNUSED_COLLECTIONS", "").split(",")
+
+    all_collections = collections["collections"]
+    remaining_collections = []
+
+    for collection in all_collections:
+        if collection["id"] not in unused_collections:
+            remaining_collections.append(collection)
+
+    collections["collections"] = remaining_collections
+
+    return collections
 
 
 def send_pulsar_message(output_data: dict, pulsar_client: PulsarClient) -> None:
@@ -196,170 +214,6 @@ def get_metadata(bucket: str, key: str, s3_client: boto3.client) -> dict:
     except TypeError:
         previously_harvested = {}
     return previously_harvested
-
-
-def coordinates_to_bbox(coordinates: dict) -> list:
-    """Finds the biggest and smallest x and y coordinates"""
-
-    unzipped = list(zip(*coordinates, strict=False))
-
-    max_values = [max(index) for index in unzipped]
-    min_values = [min(index) for index in unzipped]
-
-    return min_values + max_values
-
-
-def generate_stac_collection(all_data_summary: dict) -> str:
-    """Top level collection for Planet data"""
-
-    stac_collection = {
-        "type": "Collection",
-        "id": "planet_{collection_id}",
-        "stac_version": "1.0.0",
-        "stac_extensions": [],
-        "description": (
-            "The German TerraSAR-X / TanDEM-X satellite formation and the Spanish PAZ satellite "
-            "(managed by Hisdesat Servicios Estratégicos S.A.) are being operated in the same "
-            "orbit tube and feature identical ground swaths and imaging modes - allowing Airbus "
-            "and Hisdesat to establish a unique commercial Radar Constellation. The satellites "
-            "carry a high frequency X-band Synthetic Aperture Radar (SAR) sensor in order to "
-            "acquire datasets ranging from very high-resolution imagery to wide area coverage."
-        ),
-        "links": [],
-        "title": "Airbus SAR Data",
-        "geometry": {"type": "Polygon"},
-        "extent": {
-            "spatial": {"bbox": [all_data_summary["bbox"]]},
-            "temporal": {
-                "interval": [[all_data_summary["start_time"], all_data_summary["stop_time"]]]
-            },
-        },
-        "license": "proprietary",
-        "keywords": ["airbus"],
-        "summaries": {
-            "platform": ["TSX-1", "PAZ-1", "TDX-1"],
-            "constellation": ["TSX", "PAZ"],
-            "sar:product_type": ["SSC", "MGD", "GEC", "EEC"],
-            "sat:orbit_state": ["ascending", "descending"],
-            "sar:polarizations": [
-                ["VV", "VH"],
-                ["HH", "HV"],
-                ["HH", "VV"],
-                ["VV"],
-                ["VH"],
-                ["HH"],
-                ["HV"],
-            ],
-            "sar:frequency_band": ["X"],
-            "sar:instrument_mode": [
-                "SAR_ST_S",
-                "SAR_HS_S",
-                "SAR_HS_S_300",
-                "SAR_HS_S_150",
-                "SAR_HS_D",
-                "SAR_HS_D_300",
-                "SAR_HS_D_150",
-                "SAR_SL_S",
-                "SAR_SL_D",
-                "SAR_SM_S",
-                "SAR_SM_D",
-                "SAR_SC_S",
-                "SAR_WS_S",
-            ],
-            "sar:center_frequency": [9.65],
-            "sar:observation_direction": ["right", "left"],
-        },
-        "item_assets": {
-            "thumbnail": {
-                "type": "image/tiff; application=geotiff; profile=cloud-optimized",
-                "roles": ["thumbnail"],
-                "title": "Thumbnail Image",
-            }
-        },
-    }
-    return json.dumps(stac_collection, indent=4)
-
-
-# def handle_quicklook_url(data, links, assets, mapped_keys):
-#     """Convert quicklook URL to thumbnail asset"""
-#     mime_types = {
-#         ".tiff": "image/tiff; application=geotiff; profile=cloud-optimized",
-#         ".tif": "image/tiff; application=geotiff; profile=cloud-optimized",
-#         ".jpg": "image/jpeg",
-#         ".jpeg": "image/jpeg",
-#         ".png": "image/png",
-#     }
-#
-#     if quicklook_url := data["properties"].get("quicklookUrl"):
-#         file_extension = os.path.splitext(quicklook_url)[1].lower()
-#         mime_type = mime_types.get(file_extension, "application/octet-stream")
-#         links.append(
-#             {
-#                 "rel": "thumbnail",
-#                 "href": data["properties"]["quicklookUrl"],
-#                 "type": mime_type,
-#             }
-#         )
-#         assets["thumbnail"] = {
-#             "href": data["properties"]["quicklookUrl"],
-#             "type": mime_type,
-#         }
-#         mapped_keys.add("quicklookUrl")
-
-
-#
-# def generate_stac_item(data) -> str:
-#     """Catalogue items for Airbus data"""
-#     coordinates = data["geometry"]["coordinates"][0]
-#     bbox = coordinates_to_bbox(coordinates)
-#
-#     mapped_keys = set()
-#     properties = {"access": ["HTTPServer"], "sar:frequency_band": "X", "sar:center_frequency": 9.65}
-#
-#     links = []
-#     assets = {}
-#
-#     def map_if_exists(key, source_key):
-#         if source_key in data["properties"]:
-#             properties[key] = modify_value(source_key, data["properties"][source_key])
-#             mapped_keys.add(source_key)
-#
-#     map_if_exists("datetime", "catalogueTime")
-#     map_if_exists("start_datetime", "startTime")
-#     map_if_exists("end_datetime", "stopTime")
-#     map_if_exists("updated", "lastUpdateTime")
-#     map_if_exists("sar:instrument_mode", "sensorMode")
-#     map_if_exists("sar:polarizations", "polarizationChannels")
-#     map_if_exists("sar:observation_direction", "lookDirection")
-#     map_if_exists("sar:product_type", "productType")
-#     map_if_exists("sat:platform_international_designator", "satellite")
-#     map_if_exists("sat:orbit_state", "pathDirection")
-#     map_if_exists("sat:relative_orbit", "relativeOrbit")
-#     map_if_exists("sat:absolute_orbit", "absoluteOrbit")
-#
-#     handle_quicklook_url(data, links, assets, mapped_keys)
-#
-#     for key, value in data["properties"].items():
-#         if key not in mapped_keys and value is not None:
-#             properties[underscore(key)] = value
-#
-#     stac_item = {
-#         "type": "Feature",
-#         "stac_version": "1.0.0",
-#         "stac_extensions": [
-#             "https://stac-extensions.github.io/sar/v1.0.0/schema.json",
-#             "https://stac-extensions.github.io/sat/v1.0.0/schema.json",
-#         ],
-#         "id": data["properties"]["acquisitionId"],
-#         "collection": "airbus_sar_data",
-#         "geometry": {"type": "Polygon", "coordinates": [coordinates]},
-#         "bbox": bbox,
-#         "properties": properties,
-#         "links": links,
-#         "assets": assets,
-#     }
-#
-#     return json.dumps(stac_item, indent=4)
 
 
 def make_catalogue() -> str:

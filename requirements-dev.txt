@@ -13,11 +13,13 @@ black==24.10.0
 boto3==1.35.48
     # via
     #   eodhp-utils
+    #   moto
     #   planet-harvester (pyproject.toml)
 botocore==1.35.48
     # via
     #   boto3
     #   eodhp-utils
+    #   moto
     #   planet-harvester (pyproject.toml)
     #   s3transfer
 build==1.2.2.post1
@@ -26,6 +28,8 @@ certifi==2024.8.30
     # via
     #   pulsar-client
     #   requests
+cffi==1.17.1
+    # via cryptography
 cfgv==3.4.0
     # via pre-commit
 charset-normalizer==3.4.0
@@ -35,6 +39,8 @@ click==8.1.7
     #   black
     #   pip-tools
     #   planet-harvester (pyproject.toml)
+cryptography==43.0.3
+    # via moto
 distlib==0.3.9
     # via virtualenv
 eodhp-utils @ git+https://github.com/EO-DataHub/eodhp-utils@v0.1.1
@@ -51,6 +57,8 @@ iniconfig==2.0.0
     # via pytest
 isort==5.13.2
     # via planet-harvester (pyproject.toml)
+jinja2==3.1.4
+    # via moto
 jmespath==1.0.1
     # via
     #   boto3
@@ -61,6 +69,12 @@ jsonschema==4.23.0
     #   pystac
 jsonschema-specifications==2024.10.1
     # via jsonschema
+markupsafe==3.0.2
+    # via
+    #   jinja2
+    #   werkzeug
+moto==5.0.18
+    # via planet-harvester (pyproject.toml)
 mypy-extensions==1.0.0
     # via black
 nodeenv==1.9.1
@@ -84,6 +98,8 @@ pre-commit==4.0.1
     # via planet-harvester (pyproject.toml)
 pulsar-client==3.5.0
     # via planet-harvester (pyproject.toml)
+pycparser==2.22
+    # via cffi
 pyproject-hooks==1.2.0
     # via
     #   build
@@ -108,16 +124,27 @@ pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
     # via
     #   botocore
+    #   moto
     #   pystac
     #   pystac-client
 pyyaml==6.0.2
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   responses
 referencing==0.35.1
     # via
     #   jsonschema
     #   jsonschema-specifications
 requests==2.32.3
-    # via pystac-client
+    # via
+    #   moto
+    #   pystac-client
+    #   requests-mock
+    #   responses
+requests-mock==1.12.1
+    # via planet-harvester (pyproject.toml)
+responses==0.25.3
+    # via moto
 rpds-py==0.20.0
     # via
     #   jsonschema
@@ -132,12 +159,17 @@ urllib3==2.2.3
     # via
     #   botocore
     #   requests
+    #   responses
 virtualenv==20.27.0
     # via pre-commit
 watchdog==5.0.3
     # via pytest-watcher
+werkzeug==3.0.6
+    # via moto
 wheel==0.44.0
     # via pip-tools
+xmltodict==0.14.2
+    # via moto
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
