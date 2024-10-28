@@ -10,12 +10,12 @@ attrs==24.2.0
     #   referencing
 black==24.10.0
     # via planet-harvester (pyproject.toml)
-boto3==1.35.48
+boto3==1.35.49
     # via
     #   eodhp-utils
     #   moto
     #   planet-harvester (pyproject.toml)
-botocore==1.35.48
+botocore==1.35.49
     # via
     #   boto3
     #   eodhp-utils
