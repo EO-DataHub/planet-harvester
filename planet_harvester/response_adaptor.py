@@ -14,7 +14,7 @@ def map_collection(collection):
         "geometry": {"type": "Polygon"},
         "extent": {
             "spatial": {"bbox": [[-180, -90, 90, 180]]},
-            "temporal": {"interval": ["1970-01-01T00:00:000Z", "1980-01-01T00:00:000Z"]},
+            "temporal": {"interval": [["1970-01-01T00:00:000Z", "1980-01-01T00:00:000Z"]]},
         },
         "license": "proprietary",
         "keywords": ["planet", collection["id"]],
