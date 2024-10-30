@@ -40,8 +40,8 @@ def cli():
 )  # not currently used but keeping the same structure as the other harvester repos
 @click.argument("s3_bucket", type=str)
 def harvest(workspace_name: str, catalog: str, s3_bucket: str):
-    """Harvest Planet catalogues at the top level. Send a pulsar message
-    containing all added, updated, and deleted links since the last time the catalog was
+    """Harvest Planet collections. Items are not included. Send a pulsar message
+    containing all added, updated, and deleted links since the last time the catalogue was
     harvested"""
 
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
