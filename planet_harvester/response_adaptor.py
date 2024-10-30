@@ -12,7 +12,7 @@ def map_collection(collection):
         "title": collection["display_name"],
         "geometry": {"type": "Polygon"},
         "extent": {
-            "spatial": {"bbox": [-180, -90, 90, 180]},
+            "spatial": {"bbox": [[-180, -90, 90, 180]]},
             "temporal": {"interval": [0, 0]},
         },
         "license": "proprietary",
