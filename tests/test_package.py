@@ -147,7 +147,6 @@ def test_harvest(
     s3 = boto3.resource("s3")
     my_bucket = s3.Bucket(bucket_name)
 
-    print(list(my_bucket.objects.all()))
     assert len(list(my_bucket.objects.all())) == 5
 
     args, kwargs = mock_producer.send.call_args
