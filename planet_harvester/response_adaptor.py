@@ -1,4 +1,25 @@
+import os
+
+import requests
+
+
+def get_date_range(collection: dict) -> list:
+    """Gets date range for a given Planet collection"""
+
+    dates = []
+    for modifier in ["", "-"]:
+        response = requests.get(
+            f"{os.environ['PLANET_API_URL']}/search?collections={collection['id']}&limit=1&sortby={modifier}published"
+        )
+        date = response.json()["features"][0]["properties"]["datetime"]
+
+        dates.append(date)
+
+    return dates
+
+
 def map_collection(collection):
+    start_date, end_date = get_date_range(collection)
 
     # TODO: Update dates to reflect collection contents
     return {
@@ -14,7 +35,7 @@ def map_collection(collection):
         "geometry": {"type": "Polygon"},
         "extent": {
             "spatial": {"bbox": [[-180, -90, 90, 180]]},
-            "temporal": {"interval": [["1970-01-01T00:00:00.000Z", "1980-01-01T00:00:00.000Z"]]},
+            "temporal": {"interval": [[start_date, end_date]]},
         },
         "license": "proprietary",
         "keywords": ["planet", collection["id"]],
