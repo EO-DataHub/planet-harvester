@@ -11,7 +11,8 @@ def get_date_range(collection: dict) -> list:
         response = requests.get(
             f"{os.environ['PLANET_API_URL']}/search?collections={collection['id']}&limit=1&sortby={modifier}published"
         )
-        date = response.json()["features"][0]["properties"]["datetime"]
+        all_data = response.json()
+        date = all_data["features"][0]["properties"]["datetime"]
 
         dates.append(date)
 
