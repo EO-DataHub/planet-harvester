@@ -12,9 +12,10 @@ def get_date_range(collection: dict) -> list:
             f"{os.environ['PLANET_API_URL']}/search?collections={collection['id']}&limit=1&sortby={modifier}published"
         )
         all_data = response.json()
-        print("AAAAAAAAAAAAAAAAA")
-        print(all_data)
-        date = all_data["features"][0]["properties"]["datetime"]
+        try:
+            date = all_data["features"][0]["properties"]["datetime"]
+        except IndexError:
+            return None
 
         dates.append(date)
 
@@ -22,7 +23,10 @@ def get_date_range(collection: dict) -> list:
 
 
 def map_collection(collection):
-    start_date, end_date = get_date_range(collection)
+    dates = get_date_range(collection)
+    if dates is None:
+        return None
+    start_date, end_date = dates
 
     # TODO: Update dates to reflect collection contents
     return {
@@ -57,6 +61,8 @@ def planet_to_stac_response_collection(planet_response: dict):
     stac_collections = []
 
     for planet_collection in planet_response["item_types"]:
-        stac_collections.append(map_collection(planet_collection))
+        formatted_collection = map_collection(planet_collection)
+        if formatted_collection is not None:
+            stac_collections.append(formatted_collection)
 
     return {"collections": stac_collections}
