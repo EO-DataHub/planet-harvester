@@ -1,3 +1,4 @@
+import logging
 import os
 
 import requests
@@ -5,16 +6,20 @@ import requests
 
 def get_date_range(collection: dict) -> list:
     """Gets date range for a given Planet collection"""
+    collection_id = collection["id"]
 
     dates = []
     for modifier in ["", "-"]:
         response = requests.get(
-            f"{os.environ['PLANET_API_URL']}/search?collections={collection['id']}&limit=1&sortby={modifier}published"
+            f"{os.environ['PLANET_API_URL']}/search?collections={collection_id}&limit=1&sortby={modifier}published"
         )
         all_data = response.json()
         try:
             date = all_data["features"][0]["properties"]["datetime"]
         except IndexError:
+            logging.info(
+                f"No entries found for collection {collection_id}. " f"Collection not added"
+            )
             return None
 
         dates.append(date)
