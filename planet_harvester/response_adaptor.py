@@ -1,18 +1,31 @@
 import logging
 import os
+from json import JSONDecodeError
 
 import requests
 
 
-def get_date_range(collection: dict) -> list:
+def get_date_range(collection: dict, retries=0) -> list:
     """Gets date range for a given Planet collection"""
     collection_id = collection["id"]
 
     dates = []
+
     for modifier in ["", "-"]:
-        response = requests.get(
-            f"{os.environ['PLANET_API_URL']}/search?collections={collection_id}&limit=1&sortby={modifier}published"
+        url = (
+            f"{os.environ['PLANET_API_URL']}/search?collections={collection_id}"
+            f"&limit=1"
+            f"&sortby={modifier}published"
         )
+        try:
+            response = requests.get(url)
+        except (JSONDecodeError, requests.exceptions.HTTPError):
+            logging.warning(f"Retrying retrieval of {url}. Attempt {retries}")
+            if retries > 3:
+                raise
+
+            return get_date_range(collection, retries=retries + 1)
+
         all_data = response.json()
         try:
             date = all_data["features"][0]["properties"]["datetime"]
