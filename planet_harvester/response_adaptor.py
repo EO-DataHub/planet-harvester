@@ -28,7 +28,7 @@ def get_date_range(collection: dict, retries=0) -> list:
 
         all_data = response.json()
         try:
-            date = all_data["features"][0]["properties"]["datetime"]
+            date = all_data["features"][0]["properties"].get("datetime", "1970-01-01T00:00:00.000Z")
         except IndexError:
             logging.info(
                 f"No entries found for collection {collection_id}. " f"Collection not added"
@@ -40,13 +40,8 @@ def get_date_range(collection: dict, retries=0) -> list:
     return dates
 
 
-def map_collection(collection):
-    dates = get_date_range(collection)
-    if dates is None:
-        return None
+def map_collection(collection, dates):
     start_date, end_date = dates
-
-    # TODO: Update dates to reflect collection contents
     return {
         "type": "Collection",
         "id": collection["id"],
@@ -79,8 +74,10 @@ def planet_to_stac_response_collection(planet_response: dict):
     stac_collections = []
 
     for planet_collection in planet_response["item_types"]:
-        formatted_collection = map_collection(planet_collection)
-        if formatted_collection is not None:
+        dates = get_date_range(planet_collection)
+        if dates:
+            formatted_collection = map_collection(planet_collection, dates)
+
             stac_collections.append(formatted_collection)
 
     return {"collections": stac_collections}
