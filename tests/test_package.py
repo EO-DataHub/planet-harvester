@@ -16,6 +16,7 @@ def setenvvar(monkeypatch):
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
             "PLANET_API_KEY": "Pl4n3t-4p1-k3y",
+            "PLANET_API_URL": "https://planet.api.com",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
@@ -69,13 +70,64 @@ def mock_catalogue_response():
     }
 
 
+@pytest.fixture
+def mock_catalogue_search_response():
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "bbox": [8.282253923374252, 6.382697782768316, 8.584244575686702, 6.59739514795537],
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [8.314056396687644, 6.59739514795537],
+                            [8.282253923374252, 6.435883797769592],
+                            [8.552442923758617, 6.382697782768316],
+                            [8.584244575686702, 6.544004759818029],
+                            [8.314056396687644, 6.59739514795537],
+                        ]
+                    ],
+                },
+                "properties": {
+                    "title": None,
+                    "datetime": "2024-11-28T09:22:53.523234Z",
+                    "updated": "2024-11-28T13:02:18Z",
+                    "acquired": "2024-11-28T09:22:53.523234Z",
+                    "published": "2024-11-28T13:02:18Z",
+                },
+                "id": "20241128_092253_52_24c4",
+                "stac_version": "1.0.0",
+                "assets": {},
+                "links": [],
+                "stac_extensions": [],
+                "collection": "PSScene",
+            }
+        ],
+        "links": [],
+    }
+
+
 @moto.mock_aws
 @patch("planet_harvester.__main__.PulsarClient")
-def test_harvest(mock_create_client, requests_mock, mock_catalogue_response):
+def test_harvest(
+    mock_create_client, requests_mock, mock_catalogue_response, mock_catalogue_search_response
+):
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
+
+    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=-published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
 
     mock_client = mock.MagicMock()
     mock_producer = mock.MagicMock()
@@ -114,11 +166,20 @@ def test_harvest(mock_create_client, requests_mock, mock_catalogue_response):
     assert len(call_args["updated_keys"]) == len(call_args["deleted_keys"]) == 0
 
 
-def test_get_collections(mock_catalogue_response, requests_mock):
+def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_search_response):
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
+    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=-published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
 
     collections = get_collections()
 
@@ -128,12 +189,23 @@ def test_get_collections(mock_catalogue_response, requests_mock):
         assert mock_catalogue_response["item_types"][i]["id"] == collections["collections"][i]["id"]
 
 
-def test_remove_unused_collections(mock_catalogue_response, requests_mock):
+def test_remove_unused_collections(
+    mock_catalogue_response, requests_mock, mock_catalogue_search_response
+):
 
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
+    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=-published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
 
     test_collections = "TanagerScene,SkySatVideo"
 
