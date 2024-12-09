@@ -19,7 +19,7 @@ description = "Harvest data from Planet"
 readme = "README.md"
 
 # Our target version is Python 3.11, but it may work with earlier versions.
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 license = {file = "LICENSE"}
 
@@ -64,11 +64,10 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-    "pulsar-client",
     "boto3",
     "botocore",
     "click",
-    "eodhp-utils @ git+https://github.com/EO-DataHub/eodhp-utils@v0.1.1",
+    "eodhp-utils @ git+https://github.com/UKEODHP/eodhp-utils@v0.1.3",
     "pystac-client",
     "pystac",
 ]
@@ -82,7 +81,7 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] # Optional
-dev = ["pip-tools", "pytest", "pytest-xdist", "pytest-mock", "pytest-watcher", "black", "ruff", "isort", "pre-commit", "moto", "requests-mock"]
+dev = ["pip-tools", "pytest", "pytest-xdist", "pytest-mock", "pytest-watcher", "black", "ruff", "isort", "pre-commit", "moto", "requests-mock", "munch"]
 
 # List URLs that are relevant to your project
 #
