@@ -6,9 +6,8 @@ from unittest.mock import patch
 import boto3
 import moto
 import pytest
-from click.testing import CliRunner
 
-from planet_harvester.__main__ import get_collections, harvest
+from planet_harvester.__main__ import get_collections, main
 
 
 @pytest.fixture(autouse=True)
@@ -111,6 +110,7 @@ def mock_catalogue_search_response():
 
 @moto.mock_aws
 @patch("planet_harvester.__main__.PulsarClient")
+@patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
 def test_harvest(
     mock_create_client, requests_mock, mock_catalogue_response, mock_catalogue_search_response
 ):
@@ -118,6 +118,67 @@ def test_harvest(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
+    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
+        requests_mock.get(
+            f"https://planet.api.com/search?collections={collection}&limit=1&sortby=-published",
+            text=json.dumps(mock_catalogue_search_response),
+        )
+
+    mock_client = mock.MagicMock()
+    mock_producer = mock.MagicMock()
+    mock_create_client.return_value = mock_client
+    mock_client.create_producer.return_value = mock_producer
+
+    bucket_name = "my-bucket"
+
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket_name)
+
+    main()
+
+    s3 = boto3.resource("s3")
+    my_bucket = s3.Bucket(bucket_name)
+
+    assert len(list(my_bucket.objects.all())) == 5
+
+    args, kwargs = mock_producer.send.call_args
+    call_args = json.loads(args[0])
+    assert {
+        "id",
+        "workspace",
+        "bucket_name",
+        "added_keys",
+        "updated_keys",
+        "deleted_keys",
+        "source",
+        "target",
+    }.issubset(call_args.keys())
+    assert call_args["bucket_name"] == bucket_name
+    assert len(call_args["added_keys"]) == 5
+    assert len(call_args["updated_keys"]) == len(call_args["deleted_keys"]) == 0
+
+
+@moto.mock_aws
+@patch("planet_harvester.__main__.PlanetHarvesterMessager.consume")
+@patch("planet_harvester.__main__.PulsarClient")
+@patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
+def test_harvest_expected_calls(
+    mock_create_client,
+    mock_planet_messager_consume,
+    requests_mock,
+    mock_catalogue_response,
+    mock_catalogue_search_response,
+):
+    requests_mock.get(
+        "https://api.planet.com/data/v1/item-types",
+        text=json.dumps(mock_catalogue_response),
+    )
+    mock_planet_messager_consume.return_value = None
+    print(mock_planet_messager_consume)
 
     for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
         requests_mock.get(
@@ -139,31 +200,9 @@ def test_harvest(
     s3 = boto3.resource("s3", region_name="us-east-1")
     s3.create_bucket(Bucket=bucket_name)
 
-    os.environ["PULSAR_URL"] = "mypulsar.com/pulsar"
+    main()
 
-    runner = CliRunner()
-    runner.invoke(harvest, f"workspace catalogue {bucket_name}".split())
-
-    s3 = boto3.resource("s3")
-    my_bucket = s3.Bucket(bucket_name)
-
-    assert len(list(my_bucket.objects.all())) == 5
-
-    args, kwargs = mock_producer.send.call_args
-    call_args = json.loads(args[0])
-    assert {
-        "id",
-        "workspace",
-        "bucket_name",
-        "added_keys",
-        "updated_keys",
-        "deleted_keys",
-        "source",
-        "target",
-    }.issubset(call_args.keys())
-    assert call_args["bucket_name"] == bucket_name
-    assert len(call_args["added_keys"]) == 4
-    assert len(call_args["updated_keys"]) == len(call_args["deleted_keys"]) == 0
+    mock_planet_messager_consume.assert_called_once()
 
 
 def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_search_response):
