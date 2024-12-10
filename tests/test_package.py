@@ -109,7 +109,7 @@ def mock_catalogue_search_response():
 
 
 @moto.mock_aws
-@patch("planet_harvester.__main__.PulsarClient")
+@patch("planet_harvester.__main__.get_pulsar_client")
 @patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
 def test_harvest(
     mock_create_client, requests_mock, mock_catalogue_response, mock_catalogue_search_response
@@ -164,7 +164,7 @@ def test_harvest(
 
 @moto.mock_aws
 @patch("planet_harvester.__main__.PlanetHarvesterMessager.consume")
-@patch("planet_harvester.__main__.PulsarClient")
+@patch("planet_harvester.__main__.get_pulsar_client")
 @patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
 def test_harvest_expected_calls(
     mock_create_client,
@@ -178,7 +178,6 @@ def test_harvest_expected_calls(
         text=json.dumps(mock_catalogue_response),
     )
     mock_planet_messager_consume.return_value = None
-    print(mock_planet_messager_consume)
 
     for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
         requests_mock.get(

@@ -7,18 +7,13 @@ import boto3
 import requests
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
-from pulsar import Client as PulsarClient
+from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_logging
 
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
 
 from .planet_harvester_messager import PlanetHarvesterMessager
 
-logging.basicConfig(
-    level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[logging.StreamHandler()],
-)
+setup_logging()
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
 
@@ -125,14 +120,7 @@ def make_catalogue() -> str:
 
 
 def main():
-    if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
-        session = boto3.session.Session(
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        )
-        s3_client = session.client("s3")
-    else:
-        s3_client = boto3.client("s3")
+    s3_client = get_boto3_session().client("s3")
 
     s3_bucket = os.getenv("S3_BUCKET")
 
@@ -142,8 +130,7 @@ def main():
 
     key_root = "supported-datasets/planet"
 
-    pulsar_url = os.environ.get("PULSAR_URL")
-    pulsar_client = PulsarClient(pulsar_url)
+    pulsar_client = get_pulsar_client()
     producer = pulsar_client.create_producer(
         topic="harvested", producer_name="stac_harvester/planet", chunking_enabled=True
     )
