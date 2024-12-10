@@ -4,6 +4,7 @@ import logging
 import os
 
 import boto3
+import click
 import requests
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
@@ -119,12 +120,30 @@ def make_catalogue() -> str:
     return json.dumps(stac_catalog, indent=4)
 
 
-def main():
+@click.group()
+# you can implement any global flags here that will apply to all commands, e.g. debug
+# @click.option('--debug/--no-debug', default=False) # don't feel the need to implement this, just an example
+def cli():
+    """This is just a placeholder to act as the entrypoint, you can do things with global options here
+    if required"""
+    pass
+
+
+@cli.command()
+# not currently used but keeping the same structure as the other harvester repos
+# @click.argument("source_url", type=str, nargs=1)
+@click.argument("workspace_name", type=str)
+@click.argument(
+    "catalog", type=str
+)  # not currently used but keeping the same structure as the other harvester repos
+@click.argument("s3_bucket", type=str)
+def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     s3_client = get_boto3_session().client("s3")
 
     s3_bucket = os.getenv("S3_BUCKET")
 
     harvested_data = {}
+    latest_harvested = {}
 
     logging.info("Harvesting from Planet")
 
@@ -146,14 +165,11 @@ def main():
     previously_harvested = get_metadata(s3_bucket, metadata_s3_key, s3_client)
     logging.info(f"Previously harvested URLs: {previously_harvested}")
 
-    latest_harvested = {}
-
     catalogue_data = make_catalogue()
     catalogue_key = "supported-datasets/planet.json"
     previous_hash = previously_harvested.pop(catalogue_key, None)
 
     file_hash = get_file_hash(json.dumps(catalogue_data))
-    previous_hash = previously_harvested.pop(catalogue_key, None)
     if not previous_hash or previous_hash != file_hash:
         # URL was not harvested previously
         logging.info(f"Added: {catalogue_key}")
@@ -188,4 +204,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cli(obj={})

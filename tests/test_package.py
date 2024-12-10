@@ -6,8 +6,9 @@ from unittest.mock import patch
 import boto3
 import moto
 import pytest
+from click.testing import CliRunner
 
-from planet_harvester.__main__ import get_collections, main
+from planet_harvester.__main__ import get_collections, harvest
 
 
 @pytest.fixture(autouse=True)
@@ -138,7 +139,8 @@ def test_harvest(
     s3 = boto3.resource("s3", region_name="us-east-1")
     s3.create_bucket(Bucket=bucket_name)
 
-    main()
+    runner = CliRunner()
+    runner.invoke(harvest, f"workspace catalogue {bucket_name}".split())
 
     s3 = boto3.resource("s3")
     my_bucket = s3.Bucket(bucket_name)
@@ -199,7 +201,8 @@ def test_harvest_expected_calls(
     s3 = boto3.resource("s3", region_name="us-east-1")
     s3.create_bucket(Bucket=bucket_name)
 
-    main()
+    runner = CliRunner()
+    runner.invoke(harvest, f"workspace catalogue {bucket_name}".split())
 
     mock_planet_messager_consume.assert_called_once()
 
