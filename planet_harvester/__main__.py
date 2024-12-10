@@ -162,8 +162,6 @@ def main():
 
     collections = get_collections()["collections"]
 
-    print(collections)
-
     for collection in collections:
         collection_id = collection["id"]
 
