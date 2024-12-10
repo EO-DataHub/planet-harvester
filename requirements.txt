@@ -26,7 +26,7 @@ charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via planet-harvester (pyproject.toml)
-eodhp-utils @ git+https://github.com/UKEODHP/eodhp-utils@v0.1.3
+eodhp-utils @ git+https://github.com/UKEODHP/eodhp-utils@v0.1.4
     # via planet-harvester (pyproject.toml)
 idna==3.10
     # via requests
