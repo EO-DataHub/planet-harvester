@@ -42,6 +42,6 @@ class PlanetHarvesterMessager(Messager[str]):
             "repository": "",
             "branch": "",
             "bucket_name": self.output_bucket,
-            "source": "/",
-            "target": "/",
+            "source": "",
+            "target": "",
         }
