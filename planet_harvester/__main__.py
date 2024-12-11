@@ -139,8 +139,6 @@ def cli():
 def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     s3_client = get_boto3_session().client("s3")
 
-    s3_bucket = os.getenv("S3_BUCKET")
-
     harvested_data = {}
     latest_harvested = {}
 
