@@ -160,7 +160,7 @@ def test_harvest(
         "target",
     }.issubset(call_args.keys())
     assert call_args["bucket_name"] == bucket_name
-    assert len(call_args["added_keys"]) == 5
+    assert len(call_args["added_keys"]) == 4
     assert len(call_args["updated_keys"]) == len(call_args["deleted_keys"]) == 0
 
 

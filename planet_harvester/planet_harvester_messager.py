@@ -33,15 +33,6 @@ class PlanetHarvesterMessager(Messager[str]):
             action = Messager.OutputFileAction(file_body=None, cat_path=key)
             action_list.append(action)
 
-        # Handle hash data upload
-        latest_harvested = msg["latest_harvested"]["data"]
-        metadata_s3_key = msg["latest_harvested"]["metadata_s3_key"]
-
-        action = Messager.OutputFileAction(
-            file_body=json.dumps(latest_harvested), cat_path=metadata_s3_key
-        )
-        action_list.append(action)
-
         return action_list
 
     def gen_empty_catalogue_message(self, msg):

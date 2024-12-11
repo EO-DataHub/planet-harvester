@@ -194,12 +194,10 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     deleted_keys = list(previously_harvested.keys())
 
     # Send message for altered keys
-    msg = {
-        "harvested_data": harvested_data,
-        "deleted_keys": deleted_keys,
-        "latest_harvested": {"data": latest_harvested, "metadata_s3_key": metadata_s3_key},
-    }
+    msg = {"harvested_data": harvested_data, "deleted_keys": deleted_keys}
     planet_harvester_messager.consume(msg)
+
+    upload_file_s3(json.dumps(latest_harvested), s3_bucket, metadata_s3_key, s3_client)
 
 
 if __name__ == "__main__":

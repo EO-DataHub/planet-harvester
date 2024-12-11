@@ -39,14 +39,10 @@ def test_process_msg_updated(mocker: MockerFixture):
         file_body=json.dumps({"id": "data2-id"}),
         cat_path="key/to/data2",
     )
-    expected_action_3 = Messager.OutputFileAction(
-        file_body=json.dumps({"data1-id": "hash1", "data2-id": "hash2"}),
-        cat_path="metadata/s3/key",
-    )
 
     result = test_planet_harvester.process_msg(test_msg)
 
-    assert result == [expected_action_1, expected_action_2, expected_action_3]
+    assert result == [expected_action_1, expected_action_2]
 
 
 def test_process_msg_deleted(mocker: MockerFixture):
@@ -77,14 +73,10 @@ def test_process_msg_deleted(mocker: MockerFixture):
         file_body=None,
         cat_path="key/to/data2",
     )
-    expected_action_3 = Messager.OutputFileAction(
-        file_body=json.dumps({}),
-        cat_path="metadata/s3/key",
-    )
 
     result = test_planet_harvester.process_msg(test_msg)
 
-    assert result == [expected_action_1, expected_action_2, expected_action_3]
+    assert result == [expected_action_1, expected_action_2]
 
 
 def test_process_msg_update_and_delete(mocker: MockerFixture):
@@ -104,10 +96,6 @@ def test_process_msg_update_and_delete(mocker: MockerFixture):
             "key/to/data2": {"id": "data2-id"},
         },
         "deleted_keys": ["key/to/data3", "key/to/data4"],
-        "latest_harvested": {
-            "data": {"data1-id": "hash1", "data2-id": "hash2"},
-            "metadata_s3_key": "metadata/s3/key",
-        },
     }
     expected_action_1 = Messager.OutputFileAction(
         file_body=json.dumps({"id": "data1-id"}),
@@ -125,10 +113,6 @@ def test_process_msg_update_and_delete(mocker: MockerFixture):
         file_body=None,
         cat_path="key/to/data4",
     )
-    expected_action_5 = Messager.OutputFileAction(
-        file_body=json.dumps({"data1-id": "hash1", "data2-id": "hash2"}),
-        cat_path="metadata/s3/key",
-    )
 
     result = test_planet_harvester.process_msg(test_msg)
 
@@ -137,7 +121,6 @@ def test_process_msg_update_and_delete(mocker: MockerFixture):
         expected_action_2,
         expected_action_3,
         expected_action_4,
-        expected_action_5,
     ]
 
 
