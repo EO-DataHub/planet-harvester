@@ -10,9 +10,8 @@ from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
 from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_logging
 
+from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
-
-from .planet_harvester_messager import PlanetHarvesterMessager
 
 setup_logging()
 
