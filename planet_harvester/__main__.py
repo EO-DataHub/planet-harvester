@@ -8,112 +8,14 @@ import click
 import requests
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
-from pulsar import Client as PulsarClient
+from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_logging
 
+from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
 
-logging.basicConfig(
-    level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[logging.StreamHandler()],
-)
+setup_logging()
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
-
-
-@click.group()
-# you can implement any global flags here that will apply to all commands, e.g. debug
-# @click.option('--debug/--no-debug', default=False) # don't feel the need to implement this, just an example
-def cli():
-    """This is just a placeholder to act as the entrypoint, you can do things with global options here
-    if required"""
-    pass
-
-
-@cli.command()
-# not currently used but keeping the same structure as the other harvester repos
-# @click.argument("source_url", type=str, nargs=1)
-@click.argument("workspace_name", type=str)
-@click.argument(
-    "catalog", type=str
-)  # not currently used but keeping the same structure as the other harvester repos
-@click.argument("s3_bucket", type=str)
-def harvest(workspace_name: str, catalog: str, s3_bucket: str):
-    """Harvest Planet collections. Items are not included. Send a pulsar message
-    containing all added, updated, and deleted links since the last time the catalogue was
-    harvested"""
-
-    if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
-        session = boto3.session.Session(
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        )
-        s3_client = session.client("s3")
-    else:
-        s3_client = boto3.client("s3")
-
-    pulsar_url = os.environ.get("PULSAR_URL")
-    pulsar_client = PulsarClient(pulsar_url)
-
-    harvested_keys = {"added_keys": set(), "updated_keys": set()}
-
-    logging.info("Harvesting from Planet")
-
-    key_root = "git-harvester/supported-datasets/planet"
-
-    metadata_s3_key = "harvested-metadata/planet"
-    previously_harvested = get_metadata(s3_bucket, metadata_s3_key, s3_client)
-    logging.info(f"Previously harvested URLs: {previously_harvested}")
-    latest_harvested = {}
-
-    catalogue_data = make_catalogue()
-    catalogue_key = "git-harvester/supported-datasets/planet.json"
-    previous_hash = previously_harvested.pop(catalogue_key, None)
-    harvested_keys, latest_harvested[catalogue_key] = compare_to_previous_version(
-        catalogue_key, catalogue_data, previous_hash, harvested_keys, s3_bucket, s3_client
-    )
-
-    collections = get_collections()["collections"]
-
-    for collection in collections:
-        collection_id = collection["id"]
-
-        file_name = f"{collection_id}.json"
-        collection_key = f"{key_root}/{file_name}"
-
-        previous_hash = previously_harvested.pop(collection_key, None)
-        harvested_keys, latest_harvested[collection_key] = compare_to_previous_version(
-            collection_key,
-            json.dumps(collection),
-            previous_hash,
-            harvested_keys,
-            s3_bucket,
-            s3_client,
-        )
-
-    upload_file_s3(json.dumps(latest_harvested), s3_bucket, metadata_s3_key, s3_client)
-
-    deleted_keys = list(previously_harvested.keys())
-    output_data = {
-        "id": f"{workspace_name}/planet",
-        "workspace": workspace_name,
-        "bucket_name": s3_bucket,
-        "added_keys": list(harvested_keys["added_keys"]),
-        "updated_keys": list(harvested_keys["updated_keys"]),
-        "deleted_keys": deleted_keys,
-        "source": "planet",
-        "target": "/",
-    }
-
-    if any([harvested_keys["added_keys"], harvested_keys["updated_keys"], deleted_keys]):
-        # Send Pulsar message containing harvested links
-        send_pulsar_message(output_data, pulsar_client)
-        logging.info(f"Sent harvested message {output_data}")
-    else:
-        logging.info("No changes made to previously harvested state")
-
-    return output_data
 
 
 def get_collections() -> dict:
@@ -145,17 +47,6 @@ def remove_unused_collections(collections: dict) -> dict:
     collections["collections"] = remaining_collections
 
     return collections
-
-
-def send_pulsar_message(output_data: dict, pulsar_client: PulsarClient) -> None:
-    """Sends pulsar message for a given set of output data"""
-
-    producer = pulsar_client.create_producer(
-        topic="harvested", producer_name="stac_harvester/planet", chunking_enabled=True
-    )
-    producer.send((json.dumps(output_data)).encode("utf-8"))
-    producer.close()
-    logging.info(f"Sent harvested message {output_data}")
 
 
 def compare_to_previous_version(
@@ -226,6 +117,85 @@ def make_catalogue() -> str:
         "links": [],
     }
     return json.dumps(stac_catalog, indent=4)
+
+
+@click.group()
+# you can implement any global flags here that will apply to all commands, e.g. debug
+# @click.option('--debug/--no-debug', default=False) # don't feel the need to implement this, just an example
+def cli():
+    """This is just a placeholder to act as the entrypoint, you can do things with global options here
+    if required"""
+    pass
+
+
+@cli.command()
+# not currently used but keeping the same structure as the other harvester repos
+# @click.argument("source_url", type=str, nargs=1)
+@click.argument("workspace_name", type=str)
+@click.argument(
+    "catalog", type=str
+)  # not currently used but keeping the same structure as the other harvester repos
+@click.argument("s3_bucket", type=str)
+def harvest(workspace_name: str, catalog: str, s3_bucket: str):
+    s3_client = get_boto3_session().client("s3")
+
+    harvested_data = {}
+    latest_harvested = {}
+
+    logging.info("Harvesting from Planet")
+
+    key_root = "supported-datasets/planet"
+
+    pulsar_client = get_pulsar_client()
+    producer = pulsar_client.create_producer(
+        topic="harvested", producer_name="stac_harvester/planet", chunking_enabled=True
+    )
+
+    planet_harvester_messager = PlanetHarvesterMessager(
+        s3_client=s3_client,
+        output_bucket=s3_bucket,
+        cat_output_prefix="git-harvester/",
+        producer=producer,
+    )
+
+    metadata_s3_key = "harvested-metadata/planet"
+    previously_harvested = get_metadata(s3_bucket, metadata_s3_key, s3_client)
+    logging.info(f"Previously harvested URLs: {previously_harvested}")
+
+    catalogue_data = make_catalogue()
+    catalogue_key = "supported-datasets/planet.json"
+    previous_hash = previously_harvested.pop(catalogue_key, None)
+
+    file_hash = get_file_hash(json.dumps(catalogue_data))
+    if not previous_hash or previous_hash != file_hash:
+        # URL was not harvested previously
+        logging.info(f"Added: {catalogue_key}")
+        harvested_data[catalogue_key] = catalogue_data
+        latest_harvested[catalogue_key] = file_hash
+
+    collections = get_collections()["collections"]
+
+    for collection in collections:
+        collection_id = collection["id"]
+
+        file_name = f"{collection_id}.json"
+        collection_key = f"{key_root}/{file_name}"
+
+        file_hash = get_file_hash(json.dumps(collection))
+        previous_hash = previously_harvested.pop(collection_key, None)
+        if not previous_hash or previous_hash != file_hash:
+            # URL was not harvested previously
+            logging.info(f"Added: {collection_key}")
+            harvested_data[collection_key] = collection
+            latest_harvested[collection_key] = file_hash
+
+    deleted_keys = list(previously_harvested.keys())
+
+    # Send message for altered keys
+    msg = {"harvested_data": harvested_data, "deleted_keys": deleted_keys}
+    planet_harvester_messager.consume(msg)
+
+    upload_file_s3(json.dumps(latest_harvested), s3_bucket, metadata_s3_key, s3_client)
 
 
 if __name__ == "__main__":
