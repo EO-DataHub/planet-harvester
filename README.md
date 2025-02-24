@@ -3,7 +3,7 @@
 Harvests collections from the Planet catalogue. Planet is large and contains many items - items need to be collected 
 via the [API](https://github.com/EO-DataHub/stac-planet-api). 
 
-Harvested collections can be found in`/supported-datasets/planet`
+Harvested collections can be found in`/commercial/planet`
 
 # Development of this component
 

@@ -8,7 +8,7 @@ class PlanetHarvesterMessager(Messager[str]):
     """
     Loads STAC files harvested from the Planet API into an S3 bucket with file key relating to the
     owning catalog combined with the file path in the external catalogue.
-    For example: git-harvester/supported-datasets/planet/collection/item
+    For example: git-harvester/commercial/planet/collection/item
     Then sends a catalogue harvested message via Pulsar to trigger transformer and ingester.
     """
 
