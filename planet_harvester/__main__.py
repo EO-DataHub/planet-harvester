@@ -17,6 +17,8 @@ setup_logging()
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
 
+commercial_catalogue_root = os.getenv("COMMERCIAL_CATALOGUE_ROOT", "commercial")
+
 
 def get_collections() -> dict:
     """Get collections from Planet"""
@@ -144,7 +146,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
 
     logging.info("Harvesting from Planet")
 
-    key_root = "supported-datasets/planet"
+    key_root = f"{commercial_catalogue_root}/planet"
 
     pulsar_client = get_pulsar_client()
     producer = pulsar_client.create_producer(
@@ -163,7 +165,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     logging.info(f"Previously harvested URLs: {previously_harvested}")
 
     catalogue_data = make_catalogue()
-    catalogue_key = "supported-datasets/planet.json"
+    catalogue_key = f"{key_root}.json"
     previous_hash = previously_harvested.pop(catalogue_key, None)
 
     file_hash = get_file_hash(json.dumps(catalogue_data))
