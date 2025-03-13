@@ -27,7 +27,13 @@ def get_collections() -> dict:
         "https://api.planet.com/data/v1/item-types", auth=requests.auth.HTTPBasicAuth(api_key, "")
     )
 
-    all_collections = planet_to_stac_response_collection(planet_response=planet_response.json())
+    try:
+        all_collections = planet_to_stac_response_collection(planet_response=planet_response.json())
+    except Exception as e:
+        logging.error("Error obtaining collections")
+        logging.error(planet_response)
+        logging.error(planet_response.json())
+        raise Exception from e
 
     collections = remove_unused_collections(all_collections)
 
@@ -144,7 +150,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
 
     logging.info("Harvesting from Planet")
 
-    key_root = "supported-datasets/planet"
+    key_root = "commercial/catalogs/planet"
 
     pulsar_client = get_pulsar_client()
     producer = pulsar_client.create_producer(
@@ -154,7 +160,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     planet_harvester_messager = PlanetHarvesterMessager(
         s3_client=s3_client,
         output_bucket=s3_bucket,
-        cat_output_prefix="git-harvester/",
+        cat_output_prefix="stac-harvester/",
         producer=producer,
     )
 
@@ -163,7 +169,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
     logging.info(f"Previously harvested URLs: {previously_harvested}")
 
     catalogue_data = make_catalogue()
-    catalogue_key = "supported-datasets/planet.json"
+    catalogue_key = "commercial/catalogs/planet.json"
     previous_hash = previously_harvested.pop(catalogue_key, None)
 
     file_hash = get_file_hash(json.dumps(catalogue_data))
