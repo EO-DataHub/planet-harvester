@@ -17,7 +17,7 @@ def setenvvar(monkeypatch):
         envvars = {
             "PLANET_API_KEYS": "Pl4n3t-4p1-k3y-1:Pl4n3t-4p1-k3y-2",
             "PLANET_API_URL": "https://planet.api.com",
-            "VALID_COLLECTIONS": "SkySatVideo,TanagerScene,TanagerMethane"
+            "VALID_COLLECTIONS": "SkySatVideo,TanagerScene,TanagerMethane",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
@@ -253,8 +253,6 @@ def test_remove_invalid_collections(
 
     with mock.patch.dict(os.environ, {"VALID_COLLECTIONS": test_collections}):
         collections = get_collections()
-        print(len(collections['collections']))
-        print((collections))
 
     assert len(mock_catalogue_response["item_types"]) == len(collections["collections"]) + 2
 
