@@ -18,6 +18,8 @@ setup_logging(verbosity=2)
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
 
+commercial_catalogue_root = os.getenv("COMMERCIAL_CATALOGUE_ROOT", "commercial")
+
 try:
     PLANET_API_KEYS = itertools.cycle(os.environ.get("PLANET_API_KEYS").split(":"))
 except (NameError, AttributeError):
