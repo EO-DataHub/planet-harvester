@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import json
 import logging
 import os
@@ -13,40 +14,54 @@ from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_loggi
 from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
 
-setup_logging()
+setup_logging(verbosity=2)
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
 
-commercial_catalogue_root = os.getenv("COMMERCIAL_CATALOGUE_ROOT", "commercial")
+try:
+    PLANET_API_KEYS = itertools.cycle(os.environ.get("PLANET_API_KEYS").split(":"))
+except (NameError, AttributeError):
+    PLANET_API_KEYS = None
 
 
 def get_collections() -> dict:
     """Get collections from Planet"""
 
-    api_key = os.environ.get("PLANET_API_KEY")
+    if PLANET_API_KEYS is not None:
+        api_key = next(PLANET_API_KEYS)
+    else:
+        raise Exception("Credentials were not provided")
 
     planet_response = requests.get(
         "https://api.planet.com/data/v1/item-types", auth=requests.auth.HTTPBasicAuth(api_key, "")
     )
 
-    all_collections = planet_to_stac_response_collection(planet_response=planet_response.json())
+    try:
+        all_collections = planet_to_stac_response_collection(planet_response=planet_response.json())
+    except Exception as e:
+        logging.error("Error obtaining collections")
+        logging.error(planet_response)
+        logging.error(planet_response.json())
+        raise Exception from e
 
-    collections = remove_unused_collections(all_collections)
+    collections = remove_invalid_collections(all_collections)
 
     return collections
 
 
-def remove_unused_collections(collections: dict) -> dict:
-    unused_collections = os.environ.get("UNUSED_COLLECTIONS", "").split(",")
+def remove_invalid_collections(collections: dict) -> dict:
+    valid_collection_names = os.environ.get("VALID_COLLECTIONS", "").split(",")
+    logging.info(f"Valid collections are: {valid_collection_names}")
 
     all_collections = collections["collections"]
-    remaining_collections = []
+    valid_collections = []
 
     for collection in all_collections:
-        if collection["id"] not in unused_collections:
-            remaining_collections.append(collection)
+        if collection["id"] in valid_collection_names:
+            logging.info(f"Found valid collection: {collection['id']}")
+            valid_collections.append(collection)
 
-    collections["collections"] = remaining_collections
+    collections["collections"] = valid_collections
 
     return collections
 
