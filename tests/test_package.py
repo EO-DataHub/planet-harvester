@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 from unittest import mock
@@ -17,6 +18,7 @@ def setenvvar(monkeypatch):
         envvars = {
             "PLANET_API_KEYS": "Pl4n3t-4p1-k3y-1:Pl4n3t-4p1-k3y-2",
             "PLANET_API_URL": "https://planet.api.com",
+            "VALID_COLLECTIONS": "SkySatVideo,TanagerScene,TanagerMethane"
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
@@ -230,7 +232,7 @@ def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_
         assert mock_catalogue_response["item_types"][i]["id"] == collections["collections"][i]["id"]
 
 
-def test_remove_unused_collections(
+def test_remove_invalid_collections(
     mock_catalogue_response, requests_mock, mock_catalogue_search_response
 ):
 
@@ -248,12 +250,14 @@ def test_remove_unused_collections(
             text=json.dumps(mock_catalogue_search_response),
         )
 
-    test_collections = "TanagerScene,SkySatVideo"
+    test_collections = "TanagerScene"
 
-    with mock.patch.dict(os.environ, {"UNUSED_COLLECTIONS": test_collections}):
+    with mock.patch.dict(os.environ, {"VALID_COLLECTIONS": test_collections}):
         collections = get_collections()
+        print(len(collections['collections']))
+        print((collections))
 
     assert len(mock_catalogue_response["item_types"]) == len(collections["collections"]) + 2
 
     for i in range(len(collections["collections"])):
-        assert collections["collections"][i]["id"] not in test_collections.split(",")
+        assert collections["collections"][i]["id"] in test_collections.split(",")
