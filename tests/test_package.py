@@ -15,7 +15,7 @@ from planet_harvester.__main__ import get_collections, harvest
 def setenvvar(monkeypatch):
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "PLANET_API_KEY": "Pl4n3t-4p1-k3y",
+            "PLANET_API_KEYS": "Pl4n3t-4p1-k3y-1:Pl4n3t-4p1-k3y-2",
             "PLANET_API_URL": "https://planet.api.com",
         }
         for k, v in envvars.items():
