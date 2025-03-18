@@ -238,7 +238,7 @@ def test_remove_invalid_collections(
     with mock.patch.dict(os.environ, {"VALID_COLLECTIONS": test_collections}):
         collections = get_collections()
 
-    assert len(collections["collections"]) == len(test_collections.split(','))
+    assert len(collections["collections"]) == len(test_collections.split(","))
 
     for i in range(len(collections["collections"])):
         assert collections["collections"][i]["id"] in test_collections.split(",")
