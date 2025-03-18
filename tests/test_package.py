@@ -15,8 +15,9 @@ from planet_harvester.__main__ import get_collections, harvest
 def setenvvar(monkeypatch):
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
-            "PLANET_API_KEY": "Pl4n3t-4p1-k3y",
+            "PLANET_API_KEYS": "Pl4n3t-4p1-k3y-1:Pl4n3t-4p1-k3y-2",
             "PLANET_API_URL": "https://planet.api.com",
+            "VALID_COLLECTIONS": "PSScene,SkySatCollect",
         }
         for k, v in envvars.items():
             monkeypatch.setenv(k, v)
@@ -29,33 +30,17 @@ def mock_catalogue_response():
         "_links": {"_self": "https://api.planet.com/data/v1/item-types/"},
         "item_types": [
             {
-                "_links": {"_self": "https://api.planet.com/data/v1/item-types/SkySatVideo"},
+                "_links": {"_self": "https://api.planet.com/data/v1/item-types/SkySatCollect"},
                 "display_description": "SkySat video product",
-                "display_name": "SkySat Video",
-                "id": "SkySatVideo",
+                "display_name": "SkySat Scene",
+                "id": "SkySatCollect",
                 "supported_asset_types": ["video_file", "video_frames", "video_metadata"],
             },
             {
-                "_links": {"_self": "https://api.planet.com/data/v1/item-types/TanagerScene"},
-                "display_description": "Tanager Hyperspectral Imagery",
-                "display_name": "Tanager Scene",
-                "id": "TanagerScene",
-                "supported_asset_types": [
-                    "basic_beta_udm",
-                    "basic_radiance_hdf5",
-                    "basic_sr_hdf5",
-                    "geolocation_array",
-                    "ortho_beta_udm",
-                    "ortho_radiance_hdf5",
-                    "ortho_sr_hdf5",
-                    "ortho_visual",
-                ],
-            },
-            {
-                "_links": {"_self": "https://api.planet.com/data/v1/item-types/TanagerMethane"},
+                "_links": {"_self": "https://api.planet.com/data/v1/item-types/PSScene"},
                 "display_description": "Tanager Methane Derived Products",
-                "display_name": "Tanager Methane",
-                "id": "TanagerMethane",
+                "display_name": "Planet Scope Scene",
+                "id": "PSScene",
                 "supported_asset_types": [
                     "ql_ch4_json",
                     "qc_ch4_json",
@@ -119,7 +104,7 @@ def test_harvest(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
-    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+    for collection in ["PSScene", "SkySatCollect"]:
         requests_mock.get(
             f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
             text=json.dumps(mock_catalogue_search_response),
@@ -145,7 +130,7 @@ def test_harvest(
     s3 = boto3.resource("s3")
     my_bucket = s3.Bucket(bucket_name)
 
-    assert len(list(my_bucket.objects.all())) == 5
+    assert len(list(my_bucket.objects.all())) == 4
 
     args, kwargs = mock_producer.send.call_args
     call_args = json.loads(args[0])
@@ -160,7 +145,7 @@ def test_harvest(
         "target",
     }.issubset(call_args.keys())
     assert call_args["bucket_name"] == bucket_name
-    assert len(call_args["added_keys"]) == 4
+    assert len(call_args["added_keys"]) == 3
     assert len(call_args["updated_keys"]) == len(call_args["deleted_keys"]) == 0
 
 
@@ -181,7 +166,7 @@ def test_harvest_expected_calls(
     )
     mock_planet_messager_consume.return_value = None
 
-    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+    for collection in ["PSScene", "SkySatCollect"]:
         requests_mock.get(
             f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
             text=json.dumps(mock_catalogue_search_response),
@@ -212,7 +197,7 @@ def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
-    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+    for collection in ["PSScene", "SkySatCollect"]:
         requests_mock.get(
             f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
             text=json.dumps(mock_catalogue_search_response),
@@ -230,7 +215,7 @@ def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_
         assert mock_catalogue_response["item_types"][i]["id"] == collections["collections"][i]["id"]
 
 
-def test_remove_unused_collections(
+def test_remove_invalid_collections(
     mock_catalogue_response, requests_mock, mock_catalogue_search_response
 ):
 
@@ -238,7 +223,7 @@ def test_remove_unused_collections(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
     )
-    for collection in ["SkySatVideo", "TanagerScene", "TanagerMethane"]:
+    for collection in ["PSScene", "SkySatCollect"]:
         requests_mock.get(
             f"https://planet.api.com/search?collections={collection}&limit=1&sortby=published",
             text=json.dumps(mock_catalogue_search_response),
@@ -248,12 +233,12 @@ def test_remove_unused_collections(
             text=json.dumps(mock_catalogue_search_response),
         )
 
-    test_collections = "TanagerScene,SkySatVideo"
+    test_collections = "PSScene"
 
-    with mock.patch.dict(os.environ, {"UNUSED_COLLECTIONS": test_collections}):
+    with mock.patch.dict(os.environ, {"VALID_COLLECTIONS": test_collections}):
         collections = get_collections()
 
-    assert len(mock_catalogue_response["item_types"]) == len(collections["collections"]) + 2
+    assert len(collections["collections"]) == len(test_collections.split(","))
 
     for i in range(len(collections["collections"])):
-        assert collections["collections"][i]["id"] not in test_collections.split(",")
+        assert collections["collections"][i]["id"] in test_collections.split(",")
