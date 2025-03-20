@@ -1,6 +1,7 @@
 import logging
 import os
 from json import JSONDecodeError
+from typing import Optional
 
 import requests
 
@@ -40,16 +41,72 @@ def get_date_range(collection: dict, retries=0) -> list:
     return dates
 
 
+def map_description(collection) -> str:
+    """Obtain a description for a collection"""
+    descriptions_map = {
+        "SkySatCollect": (
+            "SkySat, operated by Planet, is a high resolution constellation of 15 satellites, able "
+            "to image revisit any location on Earth up to 10x daily (a daily collection capacity "
+            "of 4,000 km2/day).  SkySat produces 4-band (blue, green, red, NIR) and panchromatic "
+            "imagery  and is sampled at 50 centimeters per pixel when orthorectified. Skysat "
+            "Collect provides coregistered, stacked, mosaiced scenes."
+        ),
+        "PSScene": (
+            "PlanetScope, operated by Planet, is a constellation of approximately 130 satellites, "
+            "able to image the entire land surface of the Earth every day (a daily collection "
+            "capacity of 200 million km²/day). PlanetScope images are approximately 3 meters per "
+            "pixel resolution. The PlanetScope satellite constellation consists of multiple "
+            'launches ("flocks") of Dove satellites.  PlanetScope Scenes are either Four band '
+            "(RGBNIR), or Eight band (RGBNIR, red edge, green I, yellow and coastal blue), "
+            "depending on which generation of satellite the product was acquired by. On-orbit "
+            "capacity is constantly improving in capability and quantity, with technology "
+            "improvements deployed at a rapid pace."
+        ),
+    }
+
+    collection_id = collection["id"]
+    return descriptions_map.get(collection_id, collection["display_description"])
+
+
+def map_keywords(collection) -> list:
+    """Obtain a list of keywords for a collection"""
+    keywords_map = {
+        "SkySatCollect": [
+            "Optical",
+            "High-res",
+            "SkySat",
+        ],
+        "PlanetScope": [
+            "Optical",
+            "PlanetScope",
+        ],
+    }
+
+    collection_id = collection["id"]
+    return keywords_map.get(collection_id, [])
+
+
+def map_thumbnail(collection) -> Optional[str]:
+    """Obtain a thumbnail for a collection"""
+    thumbnails_map = {
+        "SkySatCollect": "https://planet.widen.net/s/ffdfpftdfb/falmouth-cornwall-united-kingdom_20240305_s116_rgb_50cm_rotated45_5200px",
+        "PlanetScope": "https://planet.widen.net/s/v22fmxpcws/glastonbury_somerset_england_20240626_111854_75_24e1_3b_visual_clip",
+    }
+
+    collection_id = collection["id"]
+    return thumbnails_map.get(collection_id, None)
+
+
 def map_collection(collection, dates):
     start_date, end_date = dates
-    return {
+    stac_collection = {
         "type": "Collection",
         "id": collection["id"],
         "stac_version": "1.0.0",
         "stac_extensions": [
             "https://stac-extensions.github.io/sar/v1.0.0/schema.json",
         ],
-        "description": (collection["display_description"]),
+        "description": map_description(collection),
         "links": [],
         "title": collection["display_name"],
         "geometry": {"type": "Polygon"},
@@ -58,7 +115,7 @@ def map_collection(collection, dates):
             "temporal": {"interval": [[start_date, end_date]]},
         },
         "license": "proprietary",
-        "keywords": ["planet", collection["id"]],
+        "keywords": ["Planet"] + map_keywords(collection),
         "summaries": {},
         "item_assets": {
             "thumbnail": {
@@ -68,6 +125,11 @@ def map_collection(collection, dates):
             }
         },
     }
+    if thumbnail := map_thumbnail(collection):
+        stac_collection["assets"] = {
+            "thumbnail": {"href": thumbnail, "type": "image/jpeg", "roles": ["thumbnail"]}
+        }
+    return stac_collection
 
 
 def planet_to_stac_response_collection(planet_response: dict):
