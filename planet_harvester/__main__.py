@@ -163,7 +163,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
 
     logging.info("Harvesting from Planet")
 
-    key_root = f"{commercial_catalogue_root}/planet"
+    key_root = f"{commercial_catalogue_root}/catalogs/planet"
 
     pulsar_client = get_pulsar_client()
     producer = pulsar_client.create_producer(
@@ -198,7 +198,7 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
         collection_id = collection["id"]
 
         file_name = f"{collection_id}.json"
-        collection_key = f"{key_root}/{file_name}"
+        collection_key = f"{key_root}/collections/{file_name}"
 
         file_hash = get_file_hash(json.dumps(collection))
         previous_hash = previously_harvested.pop(collection_key, None)
