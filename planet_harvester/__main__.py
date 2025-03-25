@@ -202,11 +202,11 @@ def harvest(workspace_name: str, catalog: str, s3_bucket: str):
 
         file_hash = get_file_hash(json.dumps(collection))
         previous_hash = previously_harvested.pop(collection_key, None)
+        latest_harvested[collection_key] = file_hash
         if not previous_hash or previous_hash != file_hash:
             # URL was not harvested previously
             logging.info(f"Added: {collection_key}")
             harvested_data[collection_key] = collection
-            latest_harvested[collection_key] = file_hash
 
     deleted_keys = list(previously_harvested.keys())
 
