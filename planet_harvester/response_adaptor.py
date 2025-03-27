@@ -47,8 +47,8 @@ def map_description(collection) -> str:
         "SkySatCollect": (
             "SkySat, operated by Planet, is a high resolution constellation of 15 satellites, able "
             "to image revisit any location on Earth up to 10x daily (a daily collection capacity "
-            "of 4,000 km2/day).  SkySat produces 4-band (blue, green, red, NIR) and panchromatic "
-            "imagery  and is sampled at 50 centimeters per pixel when orthorectified. Skysat "
+            "of 4,000 km2/day). SkySat produces 4-band (blue, green, red, NIR) and panchromatic "
+            "imagery and is sampled at 50 centimeters per pixel when orthorectified. Skysat "
             "Collect provides coregistered, stacked, mosaiced scenes."
         ),
         "PSScene": (
@@ -56,7 +56,7 @@ def map_description(collection) -> str:
             "able to image the entire land surface of the Earth every day (a daily collection "
             "capacity of 200 million km²/day). PlanetScope images are approximately 3 meters per "
             "pixel resolution. The PlanetScope satellite constellation consists of multiple "
-            'launches ("flocks") of Dove satellites.  PlanetScope Scenes are either Four band '
+            'launches ("flocks") of Dove satellites. PlanetScope Scenes are either Four band '
             "(RGBNIR), or Eight band (RGBNIR, red edge, green I, yellow and coastal blue), "
             "depending on which generation of satellite the product was acquired by. On-orbit "
             "capacity is constantly improving in capability and quantity, with technology "
