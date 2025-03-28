@@ -76,7 +76,7 @@ def map_keywords(collection) -> list:
             "High-res",
             "SkySat",
         ],
-        "PlanetScope": [
+        "PSScene": [
             "Optical",
             "PlanetScope",
         ],
@@ -90,7 +90,7 @@ def map_thumbnail(collection) -> Optional[str]:
     """Obtain a thumbnail for a collection"""
     thumbnails_map = {
         "SkySatCollect": "https://planet.widen.net/s/ffdfpftdfb/falmouth-cornwall-united-kingdom_20240305_s116_rgb_50cm_rotated45_5200px",
-        "PlanetScope": "https://planet.widen.net/s/v22fmxpcws/glastonbury_somerset_england_20240626_111854_75_24e1_3b_visual_clip",
+        "PSScene": "https://planet.widen.net/s/v22fmxpcws/glastonbury_somerset_england_20240626_111854_75_24e1_3b_visual_clip",
     }
 
     collection_id = collection["id"]
