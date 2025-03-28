@@ -114,6 +114,7 @@ def map_collection(collection, dates):
             "spatial": {"bbox": [[-180, -90, 90, 180]]},
             "temporal": {"interval": [[start_date, end_date]]},
         },
+        "providers": [{"name": "Planet"}],
         "license": "proprietary",
         "keywords": ["Planet"] + map_keywords(collection),
         "summaries": {},
