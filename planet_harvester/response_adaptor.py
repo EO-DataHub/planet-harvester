@@ -5,6 +5,8 @@ from typing import Optional
 
 import requests
 
+PLANET_API_URL = os.environ['PLANET_API_URL']
+
 
 def get_date_range(collection: dict, retries=0) -> list:
     """Gets date range for a given Planet collection"""
@@ -14,7 +16,7 @@ def get_date_range(collection: dict, retries=0) -> list:
 
     for modifier in ["", "-"]:
         url = (
-            f"{os.environ['PLANET_API_URL']}/search?collections={collection_id}"
+            f"{PLANET_API_URL}/search?collections={collection_id}"
             f"&limit=1"
             f"&sortby={modifier}published"
         )
@@ -89,8 +91,8 @@ def map_keywords(collection) -> list:
 def map_thumbnail(collection) -> Optional[str]:
     """Obtain a thumbnail for a collection"""
     thumbnails_map = {
-        "SkySatCollect": f"{os.environ['PLANET_API_URL']}/collections/SkySatCollect/thumbnail",
-        "PSScene": f"{os.environ['PLANET_API_URL']}/collections/PSScene/thumbnail",
+        "SkySatCollect": f"{PLANET_API_URL}/collections/SkySatCollect/thumbnail",
+        "PSScene": f"{PLANET_API_URL}/collections/PSScene/thumbnail",
     }
 
     collection_id = collection["id"]
