@@ -5,7 +5,7 @@ from typing import Optional
 
 import requests
 
-PLANET_API_URL = os.environ['PLANET_API_URL']
+PLANET_API_URL = os.environ["PLANET_API_URL"]
 
 
 def get_date_range(collection: dict, retries=0) -> list:
