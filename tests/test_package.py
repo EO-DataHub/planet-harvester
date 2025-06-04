@@ -164,7 +164,7 @@ def test_harvest(
 @patch("planet_harvester.__main__.PlanetHarvesterMessager.consume")
 @patch("planet_harvester.__main__.get_pulsar_client")
 @patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
-def test_harves2t_expected_calls(
+def test_harvest_expected_calls(
     mock_create_client,
     mock_planet_messager_consume,
     requests_mock,
