@@ -3,9 +3,13 @@
 Harvests collections from the Planet catalogue. Planet is large and contains many items - items need to be collected 
 via the [API](https://github.com/EO-DataHub/stac-planet-api). 
 
-Harvested collections can be found in`/commercial/planet`
+It is designed to operate as part of a data pipeline, generating STAC collections for Planet data, storing the 
+results in S3 and sending pulsar messages with details of updated files. It sends messages back to Pulsar to notify 
+downstream services of the new or updated catalogue entries.
 
-# Development of this component
+Harvested collections can be found in`/commercial/catalogs/planet`
+
+
 
 ## Getting started
 
@@ -107,3 +111,75 @@ manually in the following way:
 * Run `make dockerbuild` (for images tagged `latest`) or `make dockerbuild VERSION=1.2.3` for a release tagged `1.2.3`.
   The image will be available locally within Docker after this step.
 * Run `make dockerpush` or `make dockerpush VERSION=1.2.3`. This will send the image to the ECR repository.
+
+
+## Configuration
+
+The Harvest Transformer is configured through environment variables
+
+### Environment variables
+
+- `MINIMUM_MESSAGE_ENTRIES` - minimum number of entries per message
+- `PLANET_API_KEYS` - A colon-separated string of Planet API keys
+- `COMMERCIAL_CATALOGUE_ROOT` - root for the commercial data path
+- `VALID_COLLECTIONS` - a comma-separated list of valid Planet collections
+- `PLANET_API_URL` - URL for the Planet API
+
+
+## Pulsar Messages 
+
+### Outgoing Pulsar Messages (`harvested` topic)
+
+After processing, the service sends a message to the `harvested` topic.
+
+```json
+{
+  "id": "<unique_id>",
+  "workspace": "<workspace_name>",
+  "bucket_name": "<destination_s3_bucket>",
+  "source": "<source_url_prefix>",
+  "target": "<target_url_prefix>",
+  "updated_keys": ["<list/of/transformed/keys>"],
+  "deleted_keys": ["<list/of/deleted/keys>"],
+  "added_keys": ["<list/of/newly/added/keys>"]
+}
+```
+
+- `bucket_name`: S3 bucket where transformed files are stored (may be different from the source).
+- `updated_keys`, `deleted_keys`, `added_keys`: Refer to the updated, deleted, or added files in the output catalogue.
+
+**Note:** The service may also send "empty" catalogue change messages (with no updated, deleted, or added keys) to indicate no file changes.
+
+## Usage
+
+The service is typically run as part of a data pipeline, but you can invoke it directly for testing or development.
+
+Run from the command line:
+
+```sh
+./venv/bin/python -m harvest_transformer workspace_name catalog_name s3_bucket_name
+```
+
+
+## Development
+
+- Code is in `planet-harvester`.
+- Formatting: [Black](https://black.readthedocs.io/), [Ruff](https://docs.astral.sh/ruff/), [isort](https://pycqa.github.io/isort/).
+- Linting: [Pylint](https://pylint.pycqa.org/).
+- Pre-commit checks are installed with `make setup`.
+
+Useful Makefile targets:
+
+- `make setup`: Set up or update the dev environment.
+- `make test`: Run tests continuously.
+- `make testonce`: Run tests once.
+- `make lint`: Run all linters and formatters.
+- `make requirements`: Update requirements files from `pyproject.toml`.
+- `make requirements-update`: Update to the latest allowed versions.
+- `make dockerbuild`: Build a Docker image.
+- `make dockerpush`: Push a Docker image.
+
+
+## License
+
+This project is licensed under the United Kingdom Research and Innovation BSD Licence. See [LICENSE](LICENSE) for details.
