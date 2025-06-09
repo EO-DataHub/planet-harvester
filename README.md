@@ -157,7 +157,7 @@ The service is typically run as part of a data pipeline, but you can invoke it d
 Run from the command line:
 
 ```sh
-./venv/bin/python -m harvest_transformer workspace_name catalog_name s3_bucket_name
+./venv/bin/python -m __main__.py workspace_name catalog_name s3_bucket_name
 ```
 
 
