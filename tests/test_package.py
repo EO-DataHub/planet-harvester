@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 from unittest import mock
@@ -8,6 +9,7 @@ import moto
 import pytest
 from click.testing import CliRunner
 
+import planet_harvester.response_adaptor
 from planet_harvester.__main__ import get_collections, harvest
 
 
@@ -96,10 +98,19 @@ def mock_catalogue_search_response():
 
 @moto.mock_aws
 @patch("planet_harvester.__main__.get_pulsar_client")
-@patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
+@patch.dict(
+    "os.environ",
+    {
+        "S3_BUCKET": "my-bucket",
+        "PULSAR_URL": "mypulsar.com/pulsar",
+        "PLANET_BASE_URL": "https://planet.api.com",
+    },
+)
 def test_harvest(
     mock_create_client, requests_mock, mock_catalogue_response, mock_catalogue_search_response
 ):
+    importlib.reload(planet_harvester.response_adaptor)
+
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
