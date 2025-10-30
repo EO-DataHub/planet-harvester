@@ -15,11 +15,7 @@ def get_date_range(collection: dict, retries=0) -> list:
     dates = []
 
     for modifier in ["", "-"]:
-        url = (
-            f"{PLANET_API_URL}/search?collections={collection_id}"
-            f"&limit=1"
-            f"&sortby={modifier}published"
-        )
+        url = f"{PLANET_API_URL}/search?collections={collection_id}&limit=1&sortby={modifier}published"
         try:
             response = requests.get(url)
         except (JSONDecodeError, requests.exceptions.HTTPError):
@@ -33,9 +29,7 @@ def get_date_range(collection: dict, retries=0) -> list:
         try:
             date = all_data["features"][0]["properties"].get("datetime", "1970-01-01T00:00:00.000Z")
         except IndexError:
-            logging.info(
-                f"No entries found for collection {collection_id}. " f"Collection not added"
-            )
+            logging.info(f"No entries found for collection {collection_id}. Collection not added")
             return None
 
         dates.append(date)
@@ -113,7 +107,7 @@ def map_collection(collection, dates):
         "title": collection["display_name"],
         "geometry": {"type": "Polygon"},
         "extent": {
-            "spatial": {"bbox": [[-180, -90, 90, 180]]},
+            "spatial": {"bbox": [[-180, -90, 180, 90]]},
             "temporal": {"interval": [[start_date, end_date]]},
         },
         "providers": [{"name": "Planet"}],
