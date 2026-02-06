@@ -4,12 +4,13 @@ import json
 import logging
 import os
 
-import boto3
 import click
 import requests
+import requests.auth
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
 from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_logging
+from mypy_boto3_s3 import S3Client
 
 from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
@@ -24,15 +25,11 @@ commercial_catalogue_root = os.getenv("COMMERCIAL_CATALOGUE_ROOT", "commercial")
 def get_collections() -> dict:
     """Get collections from Planet"""
 
-    try:
-        PLANET_API_KEYS = itertools.cycle(os.environ.get("PLANET_API_KEYS").split(":"))
-    except (NameError, AttributeError):
-        PLANET_API_KEYS = None
-
-    if PLANET_API_KEYS is not None:
-        api_key = next(PLANET_API_KEYS)
-    else:
+    planet_api_keys_str = os.environ.get("PLANET_API_KEYS")
+    if planet_api_keys_str is None:
         raise Exception("Credentials were not provided")
+
+    api_key = next(itertools.cycle(planet_api_keys_str.split(":")))
 
     planet_response = requests.get(
         "https://api.planet.com/data/v1/item-types", auth=requests.auth.HTTPBasicAuth(api_key, "")
@@ -74,7 +71,7 @@ def compare_to_previous_version(
     previous_hash: str,
     harvested_keys: dict,
     s3_bucket: str,
-    s3_client: boto3.session.Session.client,
+    s3_client: S3Client,
 ) -> tuple:
     """Compares a file to a previous version of a file as determined by the hash. New or updated
     files are uploaded to S3"""
@@ -106,7 +103,7 @@ def get_file_hash(data: str) -> str:
     return _md5_hash(data.encode("utf-8"))
 
 
-def get_file_s3(bucket: str, key: str, s3_client: boto3.client) -> str:
+def get_file_s3(bucket: str, key: str, s3_client: S3Client) -> str | None:
     """Retrieve data from an S3 bucket"""
     try:
         file_obj = s3_client.get_object(Bucket=bucket, Key=key)
@@ -116,14 +113,15 @@ def get_file_s3(bucket: str, key: str, s3_client: boto3.client) -> str:
         return None
 
 
-def get_metadata(bucket: str, key: str, s3_client: boto3.client) -> dict:
+def get_metadata(bucket: str, key: str, s3_client: S3Client) -> dict:
     """Read file at given S3 location and parse as JSON"""
-    previously_harvested = get_file_s3(bucket, key, s3_client)
+    previously_harvested_str = get_file_s3(bucket, key, s3_client)
+    if previously_harvested_str is None:
+        return {}
     try:
-        previously_harvested = json.loads(previously_harvested)
-    except TypeError:
-        previously_harvested = {}
-    return previously_harvested
+        return json.loads(previously_harvested_str)
+    except (TypeError, json.JSONDecodeError):
+        return {}
 
 
 def make_catalogue() -> str:
@@ -141,7 +139,7 @@ def make_catalogue() -> str:
 @click.group()
 # you can implement any global flags here that will apply to all commands, e.g. debug
 # @click.option('--debug/--no-debug', default=False) # don't feel the need to implement this, just an example
-def cli():
+def cli() -> None:
     """This is just a placeholder to act as the entrypoint, you can do things with global options here
     if required"""
     pass
@@ -151,11 +149,9 @@ def cli():
 # not currently used but keeping the same structure as the other harvester repos
 # @click.argument("source_url", type=str, nargs=1)
 @click.argument("workspace_name", type=str)
-@click.argument(
-    "catalog", type=str
-)  # not currently used but keeping the same structure as the other harvester repos
+@click.argument("catalog", type=str)  # not currently used but keeping the same structure as the other harvester repos
 @click.argument("s3_bucket", type=str)
-def harvest(workspace_name: str, catalog: str, s3_bucket: str):
+def harvest(workspace_name: str, catalog: str, s3_bucket: str) -> None:
     s3_client = get_boto3_session().client("s3")
 
     harvested_data = {}

@@ -1,12 +1,15 @@
 import importlib
 import json
 import os
+from collections.abc import Generator
+from typing import Any
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import boto3
 import moto
 import pytest
+import requests_mock as rm
 from click.testing import CliRunner
 
 import planet_harvester.response_adaptor
@@ -14,7 +17,7 @@ from planet_harvester.__main__ import get_collections, harvest
 
 
 @pytest.fixture(autouse=True)
-def setenvvar(monkeypatch):
+def setenvvar(monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
     with mock.patch.dict(os.environ, clear=True):
         envvars = {
             "PLANET_API_KEYS": "Pl4n3t-4p1-k3y-1:Pl4n3t-4p1-k3y-2",
@@ -27,7 +30,7 @@ def setenvvar(monkeypatch):
 
 
 @pytest.fixture
-def mock_catalogue_response():
+def mock_catalogue_response() -> dict[str, Any]:
     return {
         "_links": {"_self": "https://api.planet.com/data/v1/item-types/"},
         "item_types": [
@@ -58,7 +61,7 @@ def mock_catalogue_response():
 
 
 @pytest.fixture
-def mock_catalogue_search_response():
+def mock_catalogue_search_response() -> dict[str, Any]:
     return {
         "type": "FeatureCollection",
         "features": [
@@ -107,8 +110,11 @@ def mock_catalogue_search_response():
     },
 )
 def test_harvest(
-    mock_create_client, requests_mock, mock_catalogue_response, mock_catalogue_search_response
-):
+    mock_create_client: MagicMock,
+    requests_mock: rm.Mocker,
+    mock_catalogue_response: dict[str, Any],
+    mock_catalogue_search_response: dict[str, Any],
+) -> None:
     importlib.reload(planet_harvester.response_adaptor)
 
     requests_mock.get(
@@ -143,7 +149,7 @@ def test_harvest(
 
     assert len(list(my_bucket.objects.all())) == 4
 
-    args, kwargs = mock_producer.send.call_args
+    args, _kwargs = mock_producer.send.call_args
     call_args = json.loads(args[0])
     assert {
         "id",
@@ -165,12 +171,12 @@ def test_harvest(
 @patch("planet_harvester.__main__.get_pulsar_client")
 @patch.dict("os.environ", {"S3_BUCKET": "my-bucket", "PULSAR_URL": "mypulsar.com/pulsar"})
 def test_harvest_expected_calls(
-    mock_create_client,
-    mock_planet_messager_consume,
-    requests_mock,
-    mock_catalogue_response,
-    mock_catalogue_search_response,
-):
+    mock_create_client: MagicMock,
+    mock_planet_messager_consume: MagicMock,
+    requests_mock: rm.Mocker,
+    mock_catalogue_response: dict[str, Any],
+    mock_catalogue_search_response: dict[str, Any],
+) -> None:
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
@@ -203,7 +209,11 @@ def test_harvest_expected_calls(
     mock_planet_messager_consume.assert_called_once()
 
 
-def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_search_response):
+def test_get_collections(
+    mock_catalogue_response: dict[str, Any],
+    requests_mock: rm.Mocker,
+    mock_catalogue_search_response: dict[str, Any],
+) -> None:
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
         text=json.dumps(mock_catalogue_response),
@@ -227,8 +237,10 @@ def test_get_collections(mock_catalogue_response, requests_mock, mock_catalogue_
 
 
 def test_remove_invalid_collections(
-    mock_catalogue_response, requests_mock, mock_catalogue_search_response
-):
+    mock_catalogue_response: dict[str, Any],
+    requests_mock: rm.Mocker,
+    mock_catalogue_search_response: dict[str, Any],
+) -> None:
 
     requests_mock.get(
         "https://api.planet.com/data/v1/item-types",
