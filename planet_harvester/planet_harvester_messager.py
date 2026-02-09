@@ -1,10 +1,11 @@
 import json
-from typing import Sequence
+from collections.abc import Sequence
+from typing import cast
 
 from eodhp_utils.messagers import Messager
 
 
-class PlanetHarvesterMessager(Messager[str]):
+class PlanetHarvesterMessager(Messager[dict]):
     """
     Loads STAC files harvested from the Planet API into an S3 bucket with file key relating to the
     owning catalog combined with the file path in the external catalogue.
@@ -30,12 +31,12 @@ class PlanetHarvesterMessager(Messager[str]):
 
         for key in deleted_keys:
             # return action to delete file from S3
-            action = Messager.OutputFileAction(file_body=None, cat_path=key)
+            action = Messager.OutputFileAction(file_body=cast(str, None), cat_path=key)
             action_list.append(action)
 
         return action_list
 
-    def gen_empty_catalogue_message(self, msg):
+    def gen_empty_catalogue_message(self, msg: dict) -> dict:
         return {
             "id": "harvester/planet",
             "workspace": "default_workspace",

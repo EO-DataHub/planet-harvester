@@ -1,14 +1,13 @@
 import logging
 import os
 from json import JSONDecodeError
-from typing import Optional
 
 import requests
 
 PLANET_API_URL = os.environ.get("PLANET_API_URL")
 
 
-def get_date_range(collection: dict, retries=0) -> list:
+def get_date_range(collection: dict, retries: int = 0) -> list | None:
     """Gets date range for a given Planet collection"""
     collection_id = collection["id"]
 
@@ -37,7 +36,7 @@ def get_date_range(collection: dict, retries=0) -> list:
     return dates
 
 
-def map_description(collection) -> str:
+def map_description(collection: dict) -> str:
     """Obtain a description for a collection"""
     descriptions_map = {
         "SkySatCollect": (
@@ -61,10 +60,10 @@ def map_description(collection) -> str:
     }
 
     collection_id = collection["id"]
-    return descriptions_map.get(collection_id, collection["display_description"])
+    return descriptions_map.get(collection_id) or collection["display_description"]
 
 
-def map_keywords(collection) -> list:
+def map_keywords(collection: dict) -> list:
     """Obtain a list of keywords for a collection"""
     keywords_map = {
         "SkySatCollect": [
@@ -82,7 +81,7 @@ def map_keywords(collection) -> list:
     return keywords_map.get(collection_id, [])
 
 
-def map_thumbnail(collection) -> Optional[str]:
+def map_thumbnail(collection: dict) -> str | None:
     """Obtain a thumbnail for a collection"""
     thumbnails_map = {
         "SkySatCollect": f"{PLANET_API_URL}/collections/SkySatCollect/thumbnail",
@@ -90,10 +89,10 @@ def map_thumbnail(collection) -> Optional[str]:
     }
 
     collection_id = collection["id"]
-    return thumbnails_map.get(collection_id, None)
+    return thumbnails_map.get(collection_id)
 
 
-def map_collection(collection, dates):
+def map_collection(collection: dict, dates: list) -> dict:
     start_date, end_date = dates
     stac_collection = {
         "type": "Collection",
@@ -112,7 +111,7 @@ def map_collection(collection, dates):
         },
         "providers": [{"name": "Planet"}],
         "license": "proprietary",
-        "keywords": ["Planet"] + map_keywords(collection),
+        "keywords": ["Planet", *map_keywords(collection)],
         "summaries": {},
         "item_assets": {
             "thumbnail": {
@@ -123,13 +122,11 @@ def map_collection(collection, dates):
         },
     }
     if thumbnail := map_thumbnail(collection):
-        stac_collection["assets"] = {
-            "thumbnail": {"href": thumbnail, "type": "image/jpeg", "roles": ["thumbnail"]}
-        }
+        stac_collection["assets"] = {"thumbnail": {"href": thumbnail, "type": "image/jpeg", "roles": ["thumbnail"]}}
     return stac_collection
 
 
-def planet_to_stac_response_collection(planet_response: dict):
+def planet_to_stac_response_collection(planet_response: dict) -> dict:
     stac_collections = []
 
     for planet_collection in planet_response["item_types"]:
