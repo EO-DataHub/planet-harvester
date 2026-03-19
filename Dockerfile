@@ -26,4 +26,5 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
 
+ENV UV_NO_CACHE=1
 ENTRYPOINT ["uv", "run", "--no-sync", "python", "-m", "planet_harvester", "harvest"]
