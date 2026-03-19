@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import hashlib
 import itertools
 import json
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import click
 import requests
@@ -10,7 +13,9 @@ import requests.auth
 from botocore.exceptions import ClientError
 from eodhp_utils.aws.s3 import upload_file_s3
 from eodhp_utils.runner import get_boto3_session, get_pulsar_client, setup_logging
-from mypy_boto3_s3 import S3Client
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client
 
 from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
