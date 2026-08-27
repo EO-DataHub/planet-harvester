@@ -5,7 +5,7 @@ from typing import cast
 from eodhp_utils.messagers import Messager
 
 
-class PlanetHarvesterMessager(Messager[dict]):
+class PlanetHarvesterMessager(Messager[dict, bytes]):
     """
     Loads STAC files harvested from the Planet API into an S3 bucket with file key relating to the
     owning catalog combined with the file path in the external catalogue.
