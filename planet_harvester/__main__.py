@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 from planet_harvester.planet_harvester_messager import PlanetHarvesterMessager
 from planet_harvester.response_adaptor import planet_to_stac_response_collection
 
-setup_logging(verbosity=2)
+setup_logging(verbosity=3)  # DEBUG level (eodhp-utils >=0.1.14: 2 is INFO, 3 is DEBUG)
 
 minimum_message_entries = int(os.environ.get("MINIMUM_MESSAGE_ENTRIES", 100))
 
